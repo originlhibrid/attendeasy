@@ -1,5 +1,6 @@
 
-
+ # Version 1.0
+ https://github.com/originlhibrid/attendeasy/settings
 
 # Smart Attendance Tracker
 
