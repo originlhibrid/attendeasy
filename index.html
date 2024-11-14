@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Attendance Tracker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+</head>
+<body class="bg-gray-50 font-[Inter]">
+    <div class="max-w-4xl mx-auto p-4">
+        <!-- Header -->
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
+            <div>
+                <h1 class="text-2xl font-bold text-gray-800">Smart Attendance Tracker</h1>
+                <p class="text-gray-600">Track your class attendance easily</p>
+            </div>
+            <div class="flex items-center gap-3">
+                <span class="text-gray-600">Target: </span>
+                <input type="number" id="targetPercentage" value="75" min="0" max="100" class="w-16 px-2 py-1 border rounded">
+                <span class="text-gray-600">%</span>
+            </div>
+        </div>
+
+        <!-- Subject List -->
+        <div id="subjectList" class="space-y-4 mb-8">
+            <!-- Subjects will be added here dynamically -->
+        </div>
+
+        <!-- Add Subject Button -->
+        <button onclick="openAddSubjectModal()" class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors">
+            <i class="bi bi-plus-lg mr-2"></i>Add New Subject
+        </button>
+
+        <!-- Add Subject Modal -->
+        <div id="addSubjectModal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center">
+            <div class="bg-white p-6 rounded-lg w-full max-w-md m-4">
+                <h2 class="text-xl font-bold mb-4">Add New Subject</h2>
+                <form id="addSubjectForm" onsubmit="handleAddSubject(event)" class="space-y-4">
+                    <div>
+                        <label class="block text-gray-700 mb-2">Subject Name</label>
+                        <input type="text" id="subjectName" required class="w-full px-3 py-2 border rounded-lg">
+                    </div>
+                    <div>
+                        <label class="block text-gray-700 mb-2">Initial Classes Attended</label>
+                        <input type="number" id="classesAttended" value="0" min="0" class="w-full px-3 py-2 border rounded-lg">
+                    </div>
+                    <div>
+                        <label class="block text-gray-700 mb-2">Total Classes (Optional)</label>
+                        <input type="number" id="totalClasses" min="0" class="w-full px-3 py-2 border rounded-lg">
+                    </div>
+                    <div class="flex justify-end gap-3">
+                        <button type="button" onclick="closeAddSubjectModal()" class="px-4 py-2 border rounded-lg hover:bg-gray-50">Cancel</button>
+                        <button type="submit" class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600">Add Subject</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
