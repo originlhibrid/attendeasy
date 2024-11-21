@@ -1,5 +1,5 @@
 import { Subject } from '../types/subject'
-import { calculateAttendance, calculateClassesToAttend, calculateClassesToBunk } from '@/utils/calculations'
+import { calculateAttendance, calculateClassesToAttend, calculateClassesToBunk } from '../utils/calculations'
 
 interface SubjectItemProps {
   subject: Subject
@@ -21,24 +21,40 @@ export default function SubjectItem({
   const classesToBunk = calculateClassesToBunk(subject.attended, subject.total, targetPercentage)
 
   return (
-    <div className="bg-white p-4 rounded-lg shadow">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-3">
-        <h3 className="font-semibold text-lg">{subject.name}</h3>
-        <div className="space-x-2">
-          <button onClick={() => onMarkAttendance(index, true)} className="px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600">Present</button>
-          <button onClick={() => onMarkAttendance(index, false)} className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600">Absent</button>
-          <button onClick={() => onDeleteSubject(index)} className="text-red-500 hover:text-red-600">
+    <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
+        <h3 className="text-lg font-semibold text-gray-900">{subject.name}</h3>
+        <div className="flex space-x-2">
+          <button 
+            onClick={() => onMarkAttendance(index, true)} 
+            className="px-3 py-1 bg-green-500 text-white rounded-md hover:bg-green-600 transition-colors duration-300"
+          >
+            Present
+          </button>
+          <button 
+            onClick={() => onMarkAttendance(index, false)} 
+            className="px-3 py-1 bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors duration-300"
+          >
+            Absent
+          </button>
+          <button 
+            onClick={() => onDeleteSubject(index)} 
+            className="text-red-500 hover:text-red-600 transition-colors duration-300"
+          >
             <i className="bi bi-trash"></i>
           </button>
         </div>
       </div>
-      <div className="space-y-2">
+      <div className="space-y-3">
         <div className="flex justify-between text-sm text-gray-600">
-          <span>Attendance: {attendance.toFixed(1)}%</span>
+          <span>Attendance: {subject.total > 0 ? (attendance).toFixed(1) : 0}%</span>
           <span>Classes Attended: {subject.attended}/{subject.total}</span>
         </div>
         <div className="w-full bg-gray-200 rounded-full h-2.5">
-          <div className="bg-blue-500 h-2.5 rounded-full transition-all" style={{ width: `${Math.min(100, attendance)}%` }}></div>
+          <div 
+            className="bg-blue-600 h-2.5 rounded-full transition-all duration-300" 
+            style={{ width: `${Math.min(100, attendance)}%` }}
+          ></div>
         </div>
         <div className="text-sm space-y-1">
           <p className={attendance >= targetPercentage ? 'text-green-600' : 'text-red-600'}>

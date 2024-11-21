@@ -1,14 +1,16 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import SubjectList from '@/components/SubjectList'
-import AddSubjectModal from '@/components/AddSubjectModal'
-import { Subject } from '@/types/subject'
+import SubjectList from '../components/SubjectList'
+import AddSubjectModal from '../components/AddSubjectModal'
+import { Subject } from '../types/subject'
+import { Card } from '../components/ui/card'
 
 export default function Home() {
   const [subjects, setSubjects] = useState<Subject[]>([])
   const [targetPercentage, setTargetPercentage] = useState(75)
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     loadFromLocalStorage()
@@ -33,24 +35,38 @@ export default function Home() {
   }
 
   const handleAddSubject = (newSubject: Subject) => {
-    setSubjects([...subjects, newSubject])
+    const isDuplicate = subjects.some(
+      s => s.name.toLowerCase() === newSubject.name.toLowerCase()
+    )
+    
+    if (isDuplicate) {
+      setError("A subject with this name already exists")
+      return
+    }
+    
+    setSubjects([newSubject, ...subjects])
     saveToLocalStorage()
+    setError(null)
   }
 
   const handleMarkAttendance = (index: number, isPresent: boolean) => {
-    const updatedSubjects = [...subjects]
+    const updatedSubjects = [...subjects];
+    const subject = updatedSubjects[index];
+
     if (isPresent) {
-      updatedSubjects[index].attended++
-    }
-    
-    if (updatedSubjects[index].total === 0 || updatedSubjects[index].total < updatedSubjects[index].attended) {
-      updatedSubjects[index].total = updatedSubjects[index].attended
+      subject.attended++;
+      subject.total++;
     } else {
-      updatedSubjects[index].total++
+      if (subject.total > 0) {
+        subject.total++;
+      } else {
+        // If it's the first absent and total was 0, set total to 1
+        subject.total = 1;
+      }
     }
 
-    setSubjects(updatedSubjects)
-    saveToLocalStorage()
+    setSubjects(updatedSubjects);
+    saveToLocalStorage();
   }
 
   const handleDeleteSubject = (index: number) => {
@@ -62,48 +78,53 @@ export default function Home() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto p-4">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-800">Smart Attendance Tracker</h1>
-          <p className="text-gray-600">Track your class attendance easily</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <span className="text-gray-600">Target: </span>
-          <input
-            type="number"
-            value={targetPercentage}
-            onChange={(e) => {
-              setTargetPercentage(Number(e.target.value))
-              saveToLocalStorage()
-            }}
-            min="0"
-            max="100"
-            className="w-16 px-2 py-1 border rounded"
+    <div className="min-h-screen bg-gray-100 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+      <Card className="w-full max-w-4xl bg-white shadow-lg rounded-lg overflow-hidden">
+        <div className="p-8">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">Smart Attendance Tracker</h1>
+              <p className="mt-1 text-sm text-gray-600">Track your class attendance easily</p>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="text-gray-700">Target: </span>
+              <input
+                type="number"
+                value={targetPercentage}
+                onChange={(e) => {
+                  setTargetPercentage(Number(e.target.value))
+                  saveToLocalStorage()
+                }}
+                min="0"
+                max="100"
+                className="w-16 px-2 py-1 border rounded shadow-sm focus:ring-blue-500 focus:border-blue-500"
+              />
+              <span className="text-gray-700">%</span>
+            </div>
+          </div>
+
+          <button
+            onClick={() => setIsModalOpen(true)}
+            className="w-full sm:w-auto bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors duration-300 mb-6"
+          >
+            <i className="bi bi-plus-lg mr-2"></i>Add New Subject
+          </button>
+
+          <SubjectList
+            subjects={subjects}
+            targetPercentage={targetPercentage}
+            onMarkAttendance={handleMarkAttendance}
+            onDeleteSubject={handleDeleteSubject}
           />
-          <span className="text-gray-600">%</span>
+
+          <AddSubjectModal
+            isOpen={isModalOpen}
+            onClose={() => setIsModalOpen(false)}
+            onAddSubject={handleAddSubject}
+            error={error}
+          />
         </div>
-      </div>
-
-      <SubjectList
-        subjects={subjects}
-        targetPercentage={targetPercentage}
-        onMarkAttendance={handleMarkAttendance}
-        onDeleteSubject={handleDeleteSubject}
-      />
-
-      <button
-        onClick={() => setIsModalOpen(true)}
-        className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors"
-      >
-        <i className="bi bi-plus-lg mr-2"></i>Add New Subject
-      </button>
-
-      <AddSubjectModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        onAddSubject={handleAddSubject}
-      />
+      </Card>
     </div>
   )
 }

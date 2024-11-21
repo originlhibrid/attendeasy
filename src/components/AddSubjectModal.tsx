@@ -5,6 +5,7 @@ interface AddSubjectModalProps {
   isOpen: boolean
   onClose: () => void
   onAddSubject: (subject: Subject) => void
+  error?: string | null
 }
 
 export default function AddSubjectModal({ isOpen, onClose, onAddSubject }: AddSubjectModalProps) {
