@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "install": "npm install"
+    "install": "npm ci"
   },
   "dependencies": {
     "@vercel/analytics": "^1.4.1",
