@@ -9,6 +9,9 @@ export default {
   ],
   theme: {
   	extend: {
+  		borderWidth: {
+  			'5': '5px',
+  		},
   		colors: {
   			background: 'hsl(var(--background))',
   			foreground: 'hsl(var(--foreground))',

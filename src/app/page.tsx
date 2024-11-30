@@ -79,7 +79,7 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gray-100 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-      <Card className="w-full max-w-4xl bg-white shadow-lg rounded-lg overflow-hidden">
+      <Card className="w-full max-w-4xl mx-auto p-8 border-2 border-solid border-gray-800 bg-white shadow-xl">
         <div className="p-8">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
             <div>
@@ -128,4 +128,3 @@ export default function Home() {
     </div>
   )
 }
-
