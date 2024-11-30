@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { connectToDatabase } from '@/lib/mongodb'
 import Subject from '@/models/Subject'
 import { authOptions } from '@/app/api/auth/[...nextauth]/route'
+import { pusher } from '@/lib/pusher'
 
 interface Params {
   params: {
@@ -19,12 +20,12 @@ export async function PUT(req: Request, { params }: Params) {
     }
 
     const { id } = params
-    const { name, attended, total } = await req.json()
+    const body = await req.json()
 
     await connectToDatabase()
     const subject = await Subject.findOneAndUpdate(
       { _id: id, userId: session.user.id },
-      { name, attended, total },
+      { ...body, lastUpdated: new Date() },
       { new: true }
     )
 
@@ -35,10 +36,18 @@ export async function PUT(req: Request, { params }: Params) {
       )
     }
 
+    // Trigger Pusher event for real-time updates
+    await pusher.trigger(
+      `private-user-${session.user.id}`,
+      'subject-updated',
+      subject
+    )
+
     return NextResponse.json(subject)
-  } catch (error) {
+  } catch (error: any) {
+    console.error('Error updating subject:', error)
     return NextResponse.json(
-      { message: 'Error updating subject' },
+      { message: error.message || 'Error updating subject' },
       { status: 500 }
     )
   }
@@ -67,10 +76,18 @@ export async function DELETE(req: Request, { params }: Params) {
       )
     }
 
+    // Trigger Pusher event for real-time updates
+    await pusher.trigger(
+      `private-user-${session.user.id}`,
+      'subject-deleted',
+      { id }
+    )
+
     return NextResponse.json({ message: 'Subject deleted successfully' })
-  } catch (error) {
+  } catch (error: any) {
+    console.error('Error deleting subject:', error)
     return NextResponse.json(
-      { message: 'Error deleting subject' },
+      { message: error.message || 'Error deleting subject' },
       { status: 500 }
     )
   }

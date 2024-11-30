@@ -1,12 +1,13 @@
+import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
 import { Header } from '@/components/Header'
 import { ThemeProvider } from '@/components/ThemeProvider'
-import { NextAuthProvider } from '@/components/NextAuthProvider'
+import { NextAuthProvider } from '../components/NextAuthProvider'
 
 const inter = Inter({ subsets: ['latin'] })
 
-export const metadata = {
+export const metadata: Metadata = {
   title: 'AttendEasy',
   description: 'Track your attendance with ease',
 }
@@ -17,7 +18,7 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en">
       <body className={inter.className}>
         <NextAuthProvider>
           <ThemeProvider
