@@ -5,6 +5,7 @@ import SubjectList from '../components/SubjectList'
 import AddSubjectModal from '../components/AddSubjectModal'
 import { Subject } from '../types/subject'
 import { Card } from '../components/ui/card'
+import { Header } from '../components/Header'
 
 export default function Home() {
   const [subjects, setSubjects] = useState<Subject[]>([])
@@ -77,54 +78,60 @@ export default function Home() {
     }
   }
 
+  const handleTargetChange = (value: number) => {
+    setTargetPercentage(value)
+    saveToLocalStorage()
+  }
+
   return (
-    <div className="min-h-screen bg-gray-100 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-      <Card className="w-full max-w-4xl mx-auto p-8 border-2 border-solid border-gray-800 bg-white shadow-xl">
-        <div className="p-8">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">Smart Attendance Tracker</h1>
-              <p className="mt-1 text-sm text-gray-600">Track your class attendance easily</p>
+    <>
+      <Header />
+      <div className="min-h-screen bg-gray-100 dark:bg-gray-900 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 pt-24">
+        <Card className="w-full max-w-4xl mx-auto p-8 border-2 border-solid border-gray-800 dark:border-gray-600 bg-white dark:bg-gray-800 shadow-xl">
+          <div className="p-8">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
+              <div>
+                <h2 className="text-3xl font-bold text-gray-900 dark:text-white">Smart Attendance Tracker</h2>
+                <p className="mt-2 text-gray-600 dark:text-gray-300">Track your class attendance easily</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <label htmlFor="target" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Target:
+                </label>
+                <input
+                  type="number"
+                  id="target"
+                  value={targetPercentage}
+                  onChange={(e) => handleTargetChange(parseInt(e.target.value))}
+                  className="w-16 px-2 py-1 text-sm border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                />
+                <span className="text-sm text-gray-600 dark:text-gray-400">%</span>
+              </div>
             </div>
-            <div className="flex items-center gap-3">
-              <span className="text-gray-700">Target: </span>
-              <input
-                type="number"
-                value={targetPercentage}
-                onChange={(e) => {
-                  setTargetPercentage(Number(e.target.value))
-                  saveToLocalStorage()
-                }}
-                min="0"
-                max="100"
-                className="w-16 px-2 py-1 border rounded shadow-sm focus:ring-blue-500 focus:border-blue-500"
-              />
-              <span className="text-gray-700">%</span>
-            </div>
+
+            <button
+              onClick={() => setIsModalOpen(true)}
+              className="w-full sm:w-auto bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors duration-300 mb-6"
+            >
+              <i className="bi bi-plus-lg mr-2"></i>Add New Subject
+            </button>
+
+            <SubjectList
+              subjects={subjects}
+              targetPercentage={targetPercentage}
+              onMarkAttendance={handleMarkAttendance}
+              onDeleteSubject={handleDeleteSubject}
+            />
+
+            <AddSubjectModal
+              isOpen={isModalOpen}
+              onClose={() => setIsModalOpen(false)}
+              onAddSubject={handleAddSubject}
+              error={error}
+            />
           </div>
-
-          <button
-            onClick={() => setIsModalOpen(true)}
-            className="w-full sm:w-auto bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors duration-300 mb-6"
-          >
-            <i className="bi bi-plus-lg mr-2"></i>Add New Subject
-          </button>
-
-          <SubjectList
-            subjects={subjects}
-            targetPercentage={targetPercentage}
-            onMarkAttendance={handleMarkAttendance}
-            onDeleteSubject={handleDeleteSubject}
-          />
-
-          <AddSubjectModal
-            isOpen={isModalOpen}
-            onClose={() => setIsModalOpen(false)}
-            onAddSubject={handleAddSubject}
-            error={error}
-          />
-        </div>
-      </Card>
-    </div>
+        </Card>
+      </div>
+    </>
   )
 }

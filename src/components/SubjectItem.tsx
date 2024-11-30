@@ -21,9 +21,9 @@ export default function SubjectItem({
   const classesToBunk = calculateClassesToBunk(subject.attended, subject.total, targetPercentage)
 
   return (
-    <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+    <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
-        <h3 className="text-lg font-semibold text-gray-900">{subject.name}</h3>
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{subject.name}</h3>
         <div className="flex space-x-2">
           <button 
             onClick={() => onMarkAttendance(index, true)} 
@@ -46,30 +46,32 @@ export default function SubjectItem({
         </div>
       </div>
       <div className="space-y-3">
-        <div className="flex justify-between text-sm text-gray-600">
+        <div className="flex justify-between text-sm text-gray-600 dark:text-gray-300">
           <span>Attendance: {subject.total > 0 ? (attendance).toFixed(1) : 0}%</span>
           <span>Classes Attended: {subject.attended}/{subject.total}</span>
         </div>
-        <div className="w-full bg-gray-200 rounded-full h-2.5">
-          <div 
-            className="bg-blue-600 h-2.5 rounded-full transition-all duration-300" 
-            style={{ width: `${Math.min(100, attendance)}%` }}
+        <div className="relative h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+          <div
+            className="absolute top-0 left-0 h-full bg-blue-500"
+            style={{ width: `${attendance}%` }}
           ></div>
         </div>
-        <div className="text-sm space-y-1">
-          <p className={attendance >= targetPercentage ? 'text-green-600' : 'text-red-600'}>
-            {classesNeeded === 0 
-              ? 'Target attendance achieved!' 
-              : `Need to attend ${classesNeeded} more classes to reach target`}
-          </p>
-          <p className="text-blue-600">
-            {classesToBunk > 0 
-              ? `You can skip ${classesToBunk} classes while maintaining target attendance` 
-              : 'Cannot skip any classes at the moment'}
-          </p>
+        <div className="text-sm">
+          {attendance >= targetPercentage ? (
+            <p className="text-green-600 dark:text-green-400">Target attendance achieved!</p>
+          ) : classesNeeded > 0 ? (
+            <p className="text-blue-600 dark:text-blue-400">
+              Need to attend next {classesNeeded} {classesNeeded === 1 ? 'class' : 'classes'} to reach target
+            </p>
+          ) : classesToBunk > 0 ? (
+            <p className="text-purple-600 dark:text-purple-400">
+              Can skip next {classesToBunk} {classesToBunk === 1 ? 'class' : 'classes'} and still meet target
+            </p>
+          ) : (
+            <p className="text-gray-600 dark:text-gray-400">Cannot skip any classes at the moment</p>
+          )}
         </div>
       </div>
     </div>
   )
 }
-
