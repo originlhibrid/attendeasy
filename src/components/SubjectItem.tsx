@@ -1,5 +1,6 @@
 import { Subject } from '../types/subject'
 import { calculateAttendance, calculateClassesToAttend, calculateClassesToBunk } from '../utils/calculations'
+import { Trash2 } from 'lucide-react'
 
 interface SubjectItemProps {
   subject: Subject
@@ -39,9 +40,10 @@ export default function SubjectItem({
           </button>
           <button 
             onClick={() => onDeleteSubject(index)} 
-            className="text-red-500 hover:text-red-600 transition-colors duration-300"
+            className="p-1.5 text-gray-500 hover:text-red-600 transition-colors duration-300"
+            title="Delete subject"
           >
-            <i className="bi bi-trash"></i>
+            <Trash2 className="w-5 h-5" />
           </button>
         </div>
       </div>
