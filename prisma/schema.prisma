@@ -1,0 +1,48 @@
+// This is your Prisma schema file
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id        String    @id @default(cuid())
+  email     String    @unique
+  name      String
+  password  String    @db.Text
+  subjects  Subject[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Subject {
+  id              String           @id @default(cuid())
+  name            String
+  attended        Int              @default(0)
+  total           Int              @default(0)
+  minimumRequired Float            @default(75.0)  // Minimum attendance percentage required
+  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId          String
+  attendanceLog   AttendanceLog[]
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  @@unique([userId, name])
+  @@index([userId])
+}
+
+model AttendanceLog {
+  id        String   @id @default(cuid())
+  date      DateTime @default(now())
+  status    String   // PRESENT, ABSENT, CANCELLED
+  note      String?  @db.Text
+  subject   Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  subjectId String
+
+  @@index([subjectId])
+  @@index([date])
+}

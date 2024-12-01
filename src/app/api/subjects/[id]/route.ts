@@ -1,9 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
-import { connectToDatabase } from '@/lib/mongodb'
-import Subject from '@/models/Subject'
-import { authOptions } from '@/app/api/auth/[...nextauth]/route'
-import { pusher } from '@/lib/pusher'
+import { prisma } from '@/lib/prisma'
+import { authOptions } from '../../auth/[...nextauth]/route'
 
 interface Params {
   params: {
@@ -16,40 +14,37 @@ export async function PUT(req: Request, { params }: Params) {
   try {
     const session = await getServerSession(authOptions)
     if (!session?.user?.id) {
-      return NextResponse.json({ message: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { id } = params
-    const body = await req.json()
+    const { attended, total } = await req.json()
 
-    await connectToDatabase()
-    const subject = await Subject.findOneAndUpdate(
-      { _id: id, userId: session.user.id },
-      { ...body, lastUpdated: new Date() },
-      { new: true }
-    )
+    // Validate the subject belongs to the user
+    const existingSubject = await prisma.subject.findFirst({
+      where: {
+        id: params.id,
+        userId: session.user.id,
+      },
+    })
 
-    if (!subject) {
-      return NextResponse.json(
-        { message: 'Subject not found' },
-        { status: 404 }
-      )
+    if (!existingSubject) {
+      return NextResponse.json({ error: 'Subject not found' }, { status: 404 })
     }
 
-    // Trigger Pusher event for real-time updates
-    await pusher.trigger(
-      `private-user-${session.user.id}`,
-      'subject-updated',
-      subject
-    )
+    const subject = await prisma.subject.update({
+      where: {
+        id: params.id,
+      },
+      data: {
+        attended,
+        total,
+      },
+    })
 
     return NextResponse.json(subject)
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error updating subject:', error)
-    return NextResponse.json(
-      { message: error.message || 'Error updating subject' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Failed to update subject' }, { status: 500 })
   }
 }
 
@@ -58,37 +53,30 @@ export async function DELETE(req: Request, { params }: Params) {
   try {
     const session = await getServerSession(authOptions)
     if (!session?.user?.id) {
-      return NextResponse.json({ message: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { id } = params
-
-    await connectToDatabase()
-    const subject = await Subject.findOneAndDelete({
-      _id: id,
-      userId: session.user.id
+    // Validate the subject belongs to the user
+    const existingSubject = await prisma.subject.findFirst({
+      where: {
+        id: params.id,
+        userId: session.user.id,
+      },
     })
 
-    if (!subject) {
-      return NextResponse.json(
-        { message: 'Subject not found' },
-        { status: 404 }
-      )
+    if (!existingSubject) {
+      return NextResponse.json({ error: 'Subject not found' }, { status: 404 })
     }
 
-    // Trigger Pusher event for real-time updates
-    await pusher.trigger(
-      `private-user-${session.user.id}`,
-      'subject-deleted',
-      { id }
-    )
+    await prisma.subject.delete({
+      where: {
+        id: params.id,
+      },
+    })
 
     return NextResponse.json({ message: 'Subject deleted successfully' })
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error deleting subject:', error)
-    return NextResponse.json(
-      { message: error.message || 'Error deleting subject' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Failed to delete subject' }, { status: 500 })
   }
 }

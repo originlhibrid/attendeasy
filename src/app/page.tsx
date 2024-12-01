@@ -1,44 +1,15 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useSession } from 'next-auth/react'
 import SubjectItem from '../components/SubjectItem'
 import AddSubjectModal from '../components/AddSubjectModal'
-import { RealTimeSubjects } from '../components/RealTimeSubjects'
-import { Subject } from '../types/subject'
+import { RealTimeProvider, useRealTime } from '../context/RealTimeContext'
 
-export default function Home() {
-  const { data: session } = useSession()
-  const [subjects, setSubjects] = useState<Subject[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [targetPercentage, setTargetPercentage] = useState(75)
+function SubjectList() {
   const [showAddSubjectModal, setShowAddSubjectModal] = useState(false)
-
-  useEffect(() => {
-    if (!session?.user) {
-      setLoading(false)
-      return
-    }
-
-    fetchSubjects()
-  }, [session])
-
-  const fetchSubjects = async () => {
-    try {
-      const response = await fetch('/api/subjects')
-      if (!response.ok) {
-        throw new Error('Failed to fetch subjects')
-      }
-      const data = await response.json()
-      setSubjects(data)
-    } catch (error) {
-      setError('Error loading subjects')
-      console.error('Error:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
+  const [targetPercentage, setTargetPercentage] = useState(75)
+  const { subjects, setSubjects, loading, error, refetchSubjects } = useRealTime()
 
   const handleMarkAttendance = async (index: number, isPresent: boolean) => {
     try {
@@ -46,7 +17,17 @@ export default function Home() {
       const newAttended = isPresent ? subject.attended + 1 : subject.attended
       const newTotal = subject.total + 1
 
-      const response = await fetch(`/api/subjects/${subject._id}`, {
+      // Optimistically update the UI
+      const updatedSubjects = [...subjects]
+      updatedSubjects[index] = {
+        ...subject,
+        attended: newAttended,
+        total: newTotal
+      }
+      setSubjects(updatedSubjects)
+
+      // Make the API call
+      const response = await fetch(`/api/subjects/${subject.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -56,129 +37,158 @@ export default function Home() {
       })
 
       if (!response.ok) {
-        throw new Error('Failed to update attendance')
+        // If the request fails, revert the optimistic update
+        setSubjects(subjects)
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to update attendance')
       }
-
-      // Optimistic update
-      const newSubjects = [...subjects]
-      newSubjects[index] = {
-        ...subject,
-        attended: newAttended,
-        total: newTotal,
-      }
-      setSubjects(newSubjects)
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error updating attendance:', error)
-      setError('Failed to update attendance')
+      // UI has already been reverted in case of error
     }
   }
 
   const handleDeleteSubject = async (index: number) => {
     try {
       const subject = subjects[index]
-      const response = await fetch(`/api/subjects/${subject._id}`, {
+      
+      // Optimistically update UI
+      const updatedSubjects = subjects.filter((_, i) => i !== index)
+      setSubjects(updatedSubjects)
+
+      const response = await fetch(`/api/subjects/${subject.id}`, {
         method: 'DELETE',
       })
 
       if (!response.ok) {
-        throw new Error('Failed to delete subject')
+        // If the request fails, revert the optimistic update
+        setSubjects(subjects)
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to delete subject')
       }
-
-      // Optimistic update
-      const newSubjects = subjects.filter((_, i) => i !== index)
-      setSubjects(newSubjects)
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error deleting subject:', error)
-      setError('Failed to delete subject')
+      // UI has already been reverted in case of error
     }
   }
 
-  const handleSubjectCreated = (newSubject: Subject) => {
-    setSubjects(prev => [...prev, newSubject])
-    setShowAddSubjectModal(false)
-  }
+  return (
+    <div>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+            Smart Attendance Tracker
+          </h1>
+          <div className="flex items-center gap-2 bg-gray-100 dark:bg-gray-700 px-3 py-2 rounded-lg">
+            <label htmlFor="targetPercentage" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              Target Attendance:
+            </label>
+            <input
+              id="targetPercentage"
+              type="number"
+              min="0"
+              max="100"
+              value={targetPercentage}
+              onChange={(e) => setTargetPercentage(Math.min(100, Math.max(0, parseInt(e.target.value) || 0)))}
+              className="w-16 px-2 py-1 text-sm bg-white dark:bg-gray-600 border border-gray-300 dark:border-gray-500 rounded-md dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            />
+            <span className="text-sm text-gray-600 dark:text-gray-400">%</span>
+          </div>
+        </div>
+        <button
+          onClick={() => setShowAddSubjectModal(true)}
+          className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+        >
+          <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+          </svg>
+          Add Subject
+        </button>
+      </div>
 
-  const handleSubjectUpdated = (updatedSubject: Subject) => {
-    setSubjects(prev => 
-      prev.map(subject => 
-        subject._id === updatedSubject._id ? updatedSubject : subject
-      )
-    )
-  }
+      {error && (
+        <div className="mb-4 p-4 bg-red-50 dark:bg-red-900/50 border border-red-200 dark:border-red-800 rounded-lg">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <p className="text-sm text-red-700 dark:text-red-200">{error}</p>
+            </div>
+          </div>
+        </div>
+      )}
 
-  const handleSubjectDeleted = (subjectId: string) => {
-    setSubjects(prev => prev.filter(subject => subject._id !== subjectId))
-  }
+      {loading ? (
+        <div className="flex items-center justify-center py-12">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+        </div>
+      ) : subjects.length === 0 ? (
+        <div className="text-center py-12">
+          <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+          </svg>
+          <h3 className="mt-2 text-lg font-medium text-gray-900 dark:text-white">No subjects added</h3>
+          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Get started by adding your first subject!</p>
+        </div>
+      ) : (
+        <div className="grid gap-6">
+          {subjects.map((subject, index) => (
+            <SubjectItem
+              key={subject.id}
+              subject={subject}
+              index={index}
+              targetPercentage={targetPercentage}
+              onMarkAttendance={handleMarkAttendance}
+              onDeleteSubject={handleDeleteSubject}
+            />
+          ))}
+        </div>
+      )}
 
-  if (!session) {
+      {showAddSubjectModal && (
+        <AddSubjectModal 
+          onClose={() => setShowAddSubjectModal(false)} 
+          onSuccess={refetchSubjects}
+        />
+      )}
+    </div>
+  )
+}
+
+export default function Home() {
+  const { data: session } = useSession()
+
+  if (!session?.user) {
     return (
-      <main className="flex min-h-screen flex-col items-center justify-center p-24">
-        <h1 className="text-4xl font-bold mb-8">Welcome to AttendEasy</h1>
-        <p className="text-xl text-gray-600 dark:text-gray-400">
-          Please sign in to manage your attendance
-        </p>
-      </main>
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center px-4">
+        <div className="max-w-md w-full space-y-8 p-8 bg-white dark:bg-gray-800 rounded-xl shadow-lg">
+          <div className="text-center">
+            <h2 className="text-3xl font-extrabold text-gray-900 dark:text-white">
+              Welcome to AttendEasy
+            </h2>
+            <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+              Please sign in to manage your attendance
+            </p>
+          </div>
+        </div>
+      </div>
     )
   }
 
   return (
-    <main className="min-h-screen flex items-center justify-center p-4">
-      <div className="w-full max-w-4xl bg-white dark:bg-gray-800 rounded-lg shadow-lg p-8 m-4">
-        <h1 className="text-2xl font-bold mb-2">Smart Attendance Tracker</h1>
-        <p className="text-gray-600 dark:text-gray-400 mb-4">Track your class attendance easily</p>
-        
-        <div className="flex items-center justify-between mb-6">
-          <button
-            onClick={() => setShowAddSubjectModal(true)}
-            className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors"
-          >
-            <span>+</span> Add New Subject
-          </button>
-          
-          <div className="flex items-center gap-2">
-            <span>Target:</span>
-            <input
-              type="number"
-              value={targetPercentage}
-              onChange={(e) => setTargetPercentage(Number(e.target.value))}
-              className="w-16 px-2 py-1 border rounded bg-transparent"
-            />
-            <span>%</span>
+    <RealTimeProvider>
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl overflow-hidden">
+            <div className="p-6 sm:p-8">
+              <SubjectList />
+            </div>
           </div>
         </div>
-
-        {loading ? (
-          <div className="text-center py-8">Loading...</div>
-        ) : error ? (
-          <div className="text-red-500 text-center py-8">{error}</div>
-        ) : subjects.length === 0 ? (
-          <div className="text-center text-gray-500 dark:text-gray-400 py-8">
-            No subjects added yet. Add your first subject above!
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {subjects.map((subject, index) => (
-              <SubjectItem
-                key={subject._id}
-                subject={subject}
-                index={index}
-                targetPercentage={targetPercentage}
-                onMarkAttendance={handleMarkAttendance}
-                onDeleteSubject={handleDeleteSubject}
-              />
-            ))}
-          </div>
-        )}
       </div>
-
-      {showAddSubjectModal && (
-        <AddSubjectModal
-          isOpen={showAddSubjectModal}
-          onClose={() => setShowAddSubjectModal(false)}
-          onAddSubject={handleSubjectCreated}
-          error={error}
-        />
-      )}
-    </main>
+    </RealTimeProvider>
   )
 }

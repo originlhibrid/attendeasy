@@ -4,25 +4,27 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "cross-env prisma generate && cross-env prisma db push && next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "postinstall": "prisma generate",
+    "seed": "ts-node --project tsconfig.json scripts/seed.ts",
+    "queries": "ts-node --project tsconfig.json scripts/seed.ts",
+    "caching": "ts-node --project tsconfig.json scripts/caching.ts",
+    "realtime": "ts-node --project tsconfig.json scripts/realtime.ts"
   },
   "dependencies": {
-    "@auth/mongodb-adapter": "^3.7.4",
+    "@prisma/client": "^6.0.0",
     "@tanstack/react-query": "^5.62.0",
     "@vercel/analytics": "^1.1.1",
     "bcryptjs": "^2.4.3",
     "clsx": "^2.0.0",
     "framer-motion": "^10.16.4",
     "lucide-react": "^0.292.0",
-    "mongodb": "^6.11.0",
-    "mongoose": "^8.8.3",
     "next": "14.0.3",
     "next-auth": "^4.24.10",
     "next-themes": "^0.4.3",
-    "pusher": "^5.2.0",
-    "pusher-js": "^8.4.0-rc2",
+    "prisma": "^6.0.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "tailwind-merge": "^2.5.4",
@@ -31,16 +33,19 @@
   "devDependencies": {
     "@eslint/config-array": "latest",
     "@eslint/object-schema": "latest",
+    "@types/bcryptjs": "^2.4.6",
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",
     "autoprefixer": "^10.4.20",
+    "cross-env": "^7.0.3",
     "eslint": "^9.0.0",
     "eslint-config-next": "15.0.3",
     "glob": "^10.0.0",
     "postcss": "^8.4.31",
     "rimraf": "^5.0.0",
     "tailwindcss": "^3.3.5",
-    "typescript": "^5.2.2"
+    "ts-node": "^10.9.2",
+    "typescript": "^5"
   }
 }

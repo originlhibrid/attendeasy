@@ -1,31 +1,29 @@
 import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
-import { connectToDatabase } from '@/lib/mongodb'
-import Subject from '@/models/Subject'
-import { authOptions } from '@/app/api/auth/[...nextauth]/route'
-import { pusher } from '@/lib/pusher'
+import { prisma } from '@/lib/prisma'
+import { authOptions } from '../auth/[...nextauth]/route'
 
 // Get all subjects for the current user
 export async function GET() {
   try {
     const session = await getServerSession(authOptions)
     if (!session?.user?.id) {
-      return NextResponse.json({ message: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    await connectToDatabase()
-    const subjects = await Subject.find({ userId: session.user.id })
-      .sort({ lastUpdated: -1 })
-      .select('-__v')
-      .lean()
+    const subjects = await prisma.subject.findMany({
+      where: {
+        userId: session.user.id
+      },
+      orderBy: {
+        createdAt: 'desc'
+      }
+    })
 
     return NextResponse.json(subjects)
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error fetching subjects:', error)
-    return NextResponse.json(
-      { message: error.message || 'Error fetching subjects' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Failed to fetch subjects' }, { status: 500 })
   }
 }
 
@@ -34,56 +32,48 @@ export async function POST(req: Request) {
   try {
     const session = await getServerSession(authOptions)
     if (!session?.user?.id) {
-      return NextResponse.json({ message: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const body = await req.json()
-    const { name, attended, total } = body
+    const { name } = await req.json()
 
-    // Validate input
-    if (!name || attended < 0 || total < 0 || attended > total) {
-      return NextResponse.json(
-        { message: 'Invalid input data' },
-        { status: 400 }
-      )
+    if (!name) {
+      return NextResponse.json({ error: 'Name is required' }, { status: 400 })
     }
 
-    await connectToDatabase()
-
-    // Check for duplicate subject names for this user
-    const existingSubject = await Subject.findOne({
-      userId: session.user.id,
-      name: { $regex: new RegExp(`^${name}$`, 'i') }
+    // Check for existing subject with same name
+    const existingSubject = await prisma.subject.findFirst({
+      where: {
+        userId: session.user.id,
+        name: {
+          equals: name,
+          mode: 'insensitive'
+        }
+      }
     })
 
     if (existingSubject) {
       return NextResponse.json(
-        { message: 'Subject with this name already exists' },
+        { error: 'A subject with this name already exists' },
         { status: 409 }
       )
     }
 
-    const subject = await Subject.create({
-      name,
-      attended,
-      total,
-      userId: session.user.id,
-      lastUpdated: new Date()
+    const subject = await prisma.subject.create({
+      data: {
+        name,
+        attended: 0,
+        total: 0,
+        userId: session.user.id
+      }
     })
 
-    // Trigger Pusher event for real-time updates
-    await pusher.trigger(
-      `private-user-${session.user.id}`,
-      'subject-created',
-      subject
-    )
-
-    return NextResponse.json(subject, { status: 201 })
-  } catch (error: any) {
+    return NextResponse.json(subject)
+  } catch (error) {
     console.error('Error creating subject:', error)
-    return NextResponse.json(
-      { message: error.message || 'Error creating subject' },
-      { status: 500 }
-    )
+    if (error instanceof Error) {
+      return NextResponse.json({ error: error.message }, { status: 500 })
+    }
+    return NextResponse.json({ error: 'Failed to create subject' }, { status: 500 })
   }
 }

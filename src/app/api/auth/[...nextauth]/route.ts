@@ -1,11 +1,22 @@
 import NextAuth from 'next-auth';
-import { MongoDBAdapter } from '@auth/mongodb-adapter';
+import { SessionStrategy } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import bcrypt from 'bcryptjs';
-import clientPromise from '@/lib/db';
+import { prisma } from '@/lib/prisma';
+import { JWT } from 'next-auth/jwt';
+
+// Extend the default session user type
+declare module 'next-auth' {
+  interface Session {
+    user: {
+      id: string;
+      email: string;
+      name: string;
+    }
+  }
+}
 
 export const authOptions = {
-  adapter: MongoDBAdapter(clientPromise),
   providers: [
     CredentialsProvider({
       name: 'Credentials',
@@ -16,63 +27,66 @@ export const authOptions = {
       async authorize(credentials) {
         try {
           if (!credentials?.email || !credentials?.password) {
-            throw new Error('Please enter an email and password')
+            return null;
           }
 
-          const client = await clientPromise
-          const db = client.db('attendeasy')
-          
-          const user = await db.collection('users').findOne({ 
-            email: credentials.email.toLowerCase() 
-          })
+          const user = await prisma.user.findUnique({
+            where: {
+              email: credentials.email.toLowerCase()
+            }
+          });
 
-          if (!user) {
-            throw new Error('No user found with this email')
+          if (!user || !user.password) {
+            return null;
           }
 
-          const isPasswordValid = await bcrypt.compare(credentials.password, user.password)
+          const isPasswordValid = await bcrypt.compare(
+            credentials.password,
+            user.password
+          );
 
           if (!isPasswordValid) {
-            throw new Error('Invalid password')
+            return null;
           }
 
           return {
-            id: user._id.toString(),
+            id: user.id,
             email: user.email,
-            name: user.name,
-          }
-        } catch (error: any) {
-          console.error('Auth error:', error)
-          throw error
+            name: user.name
+          };
+        } catch (error) {
+          console.error('Error in authorize:', error);
+          return null;
         }
       }
     })
   ],
-  session: {
-    strategy: 'jwt',
-    maxAge: 30 * 24 * 60 * 60, // 30 days
-  },
   pages: {
     signIn: '/auth/signin',
     error: '/auth/signin',
   },
+  session: {
+    strategy: 'jwt' as SessionStrategy,
+    maxAge: 30 * 24 * 60 * 60, // 30 days
+  },
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
-        token.id = user.id
+        token.id = user.id;
       }
-      return token
+      return token;
     },
     async session({ session, token }) {
-      if (session.user) {
-        session.user.id = token.id
+      if (session?.user) {
+        session.user.id = token.id as string;
       }
-      return session
-    }
+      return session;
+    },
   },
+  secret: process.env.NEXTAUTH_SECRET,
   debug: process.env.NODE_ENV === 'development',
-}
+};
 
-const handler = NextAuth(authOptions)
+const handler = NextAuth(authOptions);
 
-export { handler as GET, handler as POST }
+export { handler as GET, handler as POST };

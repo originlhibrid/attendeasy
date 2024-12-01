@@ -1,80 +1,94 @@
-import { NextResponse } from 'next/server'
-import bcrypt from 'bcryptjs'
-import clientPromise from '@/lib/db'
+import { NextResponse } from 'next/server';
+import bcrypt from 'bcryptjs';
+import { prisma } from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
 
 export async function POST(req: Request) {
   try {
-    const { name, email, password } = await req.json()
+    const { name, email, password } = await req.json();
 
     // Validate input
     if (!name?.trim() || !email?.trim() || !password) {
       return NextResponse.json(
-        { message: 'Missing required fields' },
+        { error: 'Missing required fields' },
         { status: 400 }
-      )
+      );
     }
 
     // Validate email format
-    const emailRegex = /^\S+@\S+\.\S+$/
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
       return NextResponse.json(
-        { message: 'Invalid email format' },
+        { error: 'Invalid email format' },
         { status: 400 }
-      )
+      );
     }
 
     // Validate password length
     if (password.length < 6) {
       return NextResponse.json(
-        { message: 'Password must be at least 6 characters' },
+        { error: 'Password must be at least 6 characters' },
         { status: 400 }
-      )
+      );
     }
 
-    const client = await clientPromise
-    const db = client.db('attendeasy')
-
     // Check if user already exists
-    const existingUser = await db.collection('users').findOne({ 
-      email: email.toLowerCase().trim() 
-    })
+    const existingUser = await prisma.user.findUnique({
+      where: {
+        email: email.toLowerCase().trim(),
+      },
+    });
 
     if (existingUser) {
       return NextResponse.json(
-        { message: 'Email already exists' },
+        { error: 'Email already exists' },
         { status: 400 }
-      )
+      );
     }
 
     // Hash password
-    const hashedPassword = await bcrypt.hash(password, 12)
+    const hashedPassword = await bcrypt.hash(password, 12);
 
-    // Create user
-    const result = await db.collection('users').insertOne({
-      name: name.trim(),
-      email: email.toLowerCase().trim(),
-      password: hashedPassword,
-      createdAt: new Date()
-    })
+    // Create new user
+    const user = await prisma.user.create({
+      data: {
+        name: name.trim(),
+        email: email.toLowerCase().trim(),
+        password: hashedPassword,
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+      },
+    });
 
     return NextResponse.json(
       { 
         message: 'User created successfully',
-        userId: result.insertedId
+        user: {
+          id: user.id,
+          name: user.name,
+          email: user.email
+        }
       },
       { status: 201 }
-    )
-  } catch (error: any) {
-    console.error('Signup error:', {
-      message: error.message,
-      code: error.code,
-      codeName: error.codeName,
-      stack: error.stack
-    })
+    );
+  } catch (error) {
+    console.error('Signup error:', error);
+
+    if (error instanceof Prisma.PrismaClientKnownRequestError) {
+      if (error.code === 'P2002') {
+        return NextResponse.json(
+          { error: 'Email already exists' },
+          { status: 400 }
+        );
+      }
+    }
 
     return NextResponse.json(
-      { message: 'Error creating user. Please try again.' },
+      { error: 'Error creating account. Please try again.' },
       { status: 500 }
-    )
+    );
   }
 }
