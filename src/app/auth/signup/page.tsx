@@ -40,10 +40,14 @@ export default function SignUp() {
         }),
       })
 
-      const data = await response.json()
-
       if (!response.ok) {
-        throw new Error(data.error || 'Error creating account')
+        const errorData = await response.json().catch(() => null)
+        throw new Error(errorData?.error || `Error: ${response.status}`)
+      }
+
+      const data = await response.json().catch(() => null)
+      if (!data) {
+        throw new Error('Invalid response from server')
       }
 
       // Sign in the user after successful signup
@@ -54,12 +58,12 @@ export default function SignUp() {
       })
 
       if (result?.error) {
-        throw new Error('Error signing in after signup')
+        throw new Error('Failed to sign in after signup')
       }
 
       router.push('/')
     } catch (error: any) {
-      setError(error.message || 'Error creating account')
+      setError(error.message || 'An unexpected error occurred')
     } finally {
       setIsLoading(false)
     }

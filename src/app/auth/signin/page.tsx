@@ -28,12 +28,17 @@ export default function SignIn() {
         redirect: false,
       })
 
-      if (result?.error) {
+      if (!result) {
+        throw new Error('No response from authentication server')
+      }
+
+      if (result.error) {
         throw new Error('Invalid email or password')
       }
 
       router.push('/')
     } catch (error: any) {
+      console.error('Sign-in error:', error)
       setError(error.message || 'Failed to sign in')
     } finally {
       setIsLoading(false)
