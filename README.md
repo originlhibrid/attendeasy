@@ -19,7 +19,3 @@ A modern web application built with Next.js and enhanced with various powerful t
 - Real-time data fetching and caching
 - Responsive design with Tailwind CSS
 - Built-in analytics tracking
-
-## Getting Started
-
-1. Clone the repository:
