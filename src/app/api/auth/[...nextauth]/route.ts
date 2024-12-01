@@ -16,58 +16,49 @@ declare module 'next-auth' {
   }
 }
 
-export const authOptions = {
+const authOptions = {
   providers: [
     CredentialsProvider({
-      name: 'Credentials',
+      name: 'credentials',
       credentials: {
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" }
       },
       async authorize(credentials) {
-        try {
-          if (!credentials?.email || !credentials?.password) {
-            return null;
-          }
-
-          const user = await prisma.user.findUnique({
-            where: {
-              email: credentials.email.toLowerCase()
-            }
-          });
-
-          if (!user || !user.password) {
-            return null;
-          }
-
-          const isPasswordValid = await bcrypt.compare(
-            credentials.password,
-            user.password
-          );
-
-          if (!isPasswordValid) {
-            return null;
-          }
-
-          return {
-            id: user.id,
-            email: user.email,
-            name: user.name
-          };
-        } catch (error) {
-          console.error('Error in authorize:', error);
-          return null;
+        if (!credentials?.email || !credentials?.password) {
+          throw new Error('Invalid credentials');
         }
+
+        const user = await prisma.user.findUnique({
+          where: {
+            email: credentials.email
+          }
+        });
+
+        if (!user || !user?.password) {
+          throw new Error('Invalid credentials');
+        }
+
+        const isCorrectPassword = await bcrypt.compare(
+          credentials.password,
+          user.password
+        );
+
+        if (!isCorrectPassword) {
+          throw new Error('Invalid credentials');
+        }
+
+        return {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+        };
       }
     })
   ],
   pages: {
     signIn: '/auth/signin',
     error: '/auth/signin',
-  },
-  session: {
-    strategy: 'jwt' as SessionStrategy,
-    maxAge: 30 * 24 * 60 * 60, // 30 days
   },
   callbacks: {
     async jwt({ token, user }) {
@@ -77,16 +68,13 @@ export const authOptions = {
       return token;
     },
     async session({ session, token }) {
-      if (session?.user) {
-        session.user.id = token.id as string;
-      }
+      session.user.id = token.id as string;
       return session;
-    },
+    }
   },
   secret: process.env.NEXTAUTH_SECRET,
   debug: process.env.NODE_ENV === 'development',
-};
+} as const;
 
-const handler = NextAuth(authOptions);
-
-export { handler as GET, handler as POST };
+// Export the handler functions
+export const { GET, POST } = NextAuth(authOptions);
