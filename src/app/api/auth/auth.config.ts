@@ -13,10 +13,7 @@ export const authOptions: AuthOptions = {
         password: { label: "Password", type: "password" }
       },
       async authorize(credentials) {
-        console.log('Authorize called with:', { email: credentials?.email });
-
         if (!credentials?.email || !credentials?.password) {
-          console.error('Missing credentials');
           return null;
         }
 
@@ -28,7 +25,6 @@ export const authOptions: AuthOptions = {
           });
 
           if (!user || !user?.password) {
-            console.error('User not found or missing password');
             return null;
           }
 
@@ -38,7 +34,6 @@ export const authOptions: AuthOptions = {
           );
 
           if (!isCorrectPassword) {
-            console.error('Invalid password');
             return null;
           }
 
@@ -73,7 +68,6 @@ export const authOptions: AuthOptions = {
       return session;
     },
   },
-  debug: process.env.NODE_ENV === 'development',
   secret: process.env.NEXTAUTH_SECRET,
   session: {
     strategy: 'jwt' as SessionStrategy,
