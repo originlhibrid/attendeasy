@@ -32,28 +32,14 @@ export async function POST(req: Request) {
       );
     }
 
-    // Check if user already exists
-    const existingUser = await prisma.user.findUnique({
-      where: {
-        email: email.toLowerCase().trim(),
-      },
-    });
-
-    if (existingUser) {
-      return NextResponse.json(
-        { error: 'Email already exists' },
-        { status: 400 }
-      );
-    }
-
     // Hash password
-    const hashedPassword = await bcrypt.hash(password, 12);
+    const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Create new user
+    // Create user
     const user = await prisma.user.create({
       data: {
-        name: name.trim(),
-        email: email.toLowerCase().trim(),
+        name,
+        email,
         password: hashedPassword,
       },
       select: {
@@ -64,31 +50,52 @@ export async function POST(req: Request) {
     });
 
     return NextResponse.json(
-      { 
-        message: 'User created successfully',
-        user: {
-          id: user.id,
-          name: user.name,
-          email: user.email
-        }
-      },
+      { message: 'User created successfully', user },
       { status: 201 }
     );
   } catch (error) {
     console.error('Signup error:', error);
-
     if (error instanceof Prisma.PrismaClientKnownRequestError) {
+      // Handle unique constraint violation
       if (error.code === 'P2002') {
         return NextResponse.json(
           { error: 'Email already exists' },
-          { status: 400 }
+          { status: 409 }
         );
       }
     }
-
     return NextResponse.json(
-      { error: 'Error creating account. Please try again.' },
+      { error: 'Something went wrong' },
       { status: 500 }
     );
   }
+}
+
+// Handle unsupported methods
+export async function GET() {
+  return NextResponse.json(
+    { error: 'Method not allowed' },
+    { status: 405 }
+  );
+}
+
+export async function PUT() {
+  return NextResponse.json(
+    { error: 'Method not allowed' },
+    { status: 405 }
+  );
+}
+
+export async function DELETE() {
+  return NextResponse.json(
+    { error: 'Method not allowed' },
+    { status: 405 }
+  );
+}
+
+export async function PATCH() {
+  return NextResponse.json(
+    { error: 'Method not allowed' },
+    { status: 405 }
+  );
 }
