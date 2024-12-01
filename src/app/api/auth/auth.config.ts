@@ -13,8 +13,11 @@ export const authOptions: AuthOptions = {
         password: { label: "Password", type: "password" }
       },
       async authorize(credentials) {
+        console.log('Authorize called with:', { email: credentials?.email });
+
         if (!credentials?.email || !credentials?.password) {
-          throw new Error('Missing credentials');
+          console.error('Missing credentials');
+          return null;
         }
 
         try {
@@ -25,7 +28,8 @@ export const authOptions: AuthOptions = {
           });
 
           if (!user || !user?.password) {
-            throw new Error('Invalid email or password');
+            console.error('User not found or missing password');
+            return null;
           }
 
           const isCorrectPassword = await bcrypt.compare(
@@ -34,7 +38,8 @@ export const authOptions: AuthOptions = {
           );
 
           if (!isCorrectPassword) {
-            throw new Error('Invalid email or password');
+            console.error('Invalid password');
+            return null;
           }
 
           return {
@@ -44,7 +49,7 @@ export const authOptions: AuthOptions = {
           };
         } catch (error) {
           console.error('Auth error:', error);
-          throw error;
+          return null;
         }
       },
     })
@@ -68,8 +73,8 @@ export const authOptions: AuthOptions = {
       return session;
     },
   },
-  secret: process.env.NEXTAUTH_SECRET,
   debug: process.env.NODE_ENV === 'development',
+  secret: process.env.NEXTAUTH_SECRET,
   session: {
     strategy: 'jwt' as SessionStrategy,
     maxAge: 30 * 24 * 60 * 60, // 30 days
