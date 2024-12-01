@@ -60,18 +60,18 @@ export async function POST(req: Request) {
       if (error.code === 'P2002') {
         return NextResponse.json(
           { error: 'Email already exists' },
-          { status: 409 }
+          { status: 400 }
         );
       }
     }
     return NextResponse.json(
-      { error: 'Something went wrong' },
+      { error: 'Failed to create user' },
       { status: 500 }
     );
   }
 }
 
-// Handle unsupported methods
+// Handle GET requests
 export async function GET() {
   return NextResponse.json(
     { error: 'Method not allowed' },
@@ -79,6 +79,7 @@ export async function GET() {
   );
 }
 
+// Handle PUT requests
 export async function PUT() {
   return NextResponse.json(
     { error: 'Method not allowed' },
@@ -86,6 +87,7 @@ export async function PUT() {
   );
 }
 
+// Handle DELETE requests
 export async function DELETE() {
   return NextResponse.json(
     { error: 'Method not allowed' },
@@ -93,6 +95,7 @@ export async function DELETE() {
   );
 }
 
+// Handle PATCH requests
 export async function PATCH() {
   return NextResponse.json(
     { error: 'Method not allowed' },

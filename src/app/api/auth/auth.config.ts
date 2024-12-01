@@ -14,7 +14,7 @@ export const authOptions: AuthOptions = {
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
-          return null;
+          throw new Error('Missing credentials');
         }
 
         try {
@@ -25,7 +25,7 @@ export const authOptions: AuthOptions = {
           });
 
           if (!user || !user?.password) {
-            return null;
+            throw new Error('Invalid email or password');
           }
 
           const isCorrectPassword = await bcrypt.compare(
@@ -34,7 +34,7 @@ export const authOptions: AuthOptions = {
           );
 
           if (!isCorrectPassword) {
-            return null;
+            throw new Error('Invalid email or password');
           }
 
           return {
@@ -44,14 +44,15 @@ export const authOptions: AuthOptions = {
           };
         } catch (error) {
           console.error('Auth error:', error);
-          return null;
+          throw error;
         }
       },
     })
   ],
   pages: {
     signIn: '/auth/signin',
-    error: '/auth/signin',
+    signUp: '/auth/signup',
+    error: '/auth/error',
   },
   callbacks: {
     async jwt({ token, user }) {
@@ -61,7 +62,7 @@ export const authOptions: AuthOptions = {
       return token;
     },
     async session({ session, token }) {
-      if (session?.user) {
+      if (session.user) {
         session.user.id = token.id as string;
       }
       return session;
@@ -71,5 +72,6 @@ export const authOptions: AuthOptions = {
   debug: process.env.NODE_ENV === 'development',
   session: {
     strategy: 'jwt' as SessionStrategy,
+    maxAge: 30 * 24 * 60 * 60, // 30 days
   },
 };
