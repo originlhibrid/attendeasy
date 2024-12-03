@@ -35,7 +35,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { name } = await req.json()
+    const { name, attended = 0, total = 0 } = await req.json()
 
     if (!name) {
       return NextResponse.json({ error: 'Name is required' }, { status: 400 })
@@ -62,8 +62,8 @@ export async function POST(req: Request) {
     const subject = await prisma.subject.create({
       data: {
         name,
-        attended: 0,
-        total: 0,
+        attended,
+        total,
         userId: session.user.id
       }
     })
